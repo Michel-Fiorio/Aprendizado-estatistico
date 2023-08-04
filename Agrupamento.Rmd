@@ -1,0 +1,195 @@
+---
+title: "Agrupamento"
+author: "Michel Fiorio"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Cálculos de medidas de proximidades (similaridade ou dissimilaridade)
+
+# Métodos para variáveis quantitativas
+
+```{r}
+# Conjunto de dados exemplo:
+
+dados <- matrix(c(9.6, 28, 18, 8.4, 31, 16, 2.4, 42, 9, 18.2, 38, 20, 3.9, 25, 12), 5, 3, TRUE)
+```
+
+## Distância Euclidiana quadrática
+
+-   usa-se matriz identidade
+-   aplicada para dados de mesma escala
+-   função 'dist()'
+
+```{r}
+euclidiana <- dist(dados, method = "euclidean")^2
+euclidiana
+```
+
+```{r}
+euclidiana <- dist(dados, method = "euclidean", diag = TRUE, upper = TRUE)^2
+euclidiana
+```
+
+## Criando a função para cálculo das distâncias de Karl Pearson e Mahalanobis
+
+```{r}
+
+generalizada.dist <- function(data.x, data.y=NULL, vc=NULL){
+  xx <- as.matrix(data.x)
+  if(is.null(data.y))
+    yy <- as.matrix(data.x)
+  else
+    yy <- as.matrix(data.y)
+  if(is.null(vc)){
+    if(is.null(data.y))
+      vc <- var(xx)
+    else
+      vc <- var(rbind(xx,yy))
+  }
+  ny <- nrow(yy)
+  md <- matrix(0,nrow(xx), ny)
+  for(i in 1:ny){
+    md[,i] <- mahalanobis(xx, yy[i,], cov=vc)
+  }
+  if(is.null(data.y))
+    dimnames(md) <- list(rownames(data.x), rownames(data.x))
+  else
+    dimnames(md) <- list(rownames(data.x), rownames(data.y))
+  sqrt(md)
+}
+
+```
+
+## Distância euclidiana padronizada quadrática (Karl Pearson)
+
+-   matriz diagonal da variância dos dados
+-   aplicada para dados de diferentes escalas e desconsidera correlação entre as variáveis
+-   usa a função 'generalizada.dist' criada acima
+
+```{r}
+a <-var(dados)
+D <-diag(diag(a))
+D <-as.matrix(D)
+karl_pearson<-(generalizada.dist(dados,vc=D))^2
+karl_pearson
+```
+
+## Distância de Mahalanobis
+
+-   matriz de covariância dos dados
+-   aplicada para dados de diferentes escalas e com correlação entre as variáveis
+-   usa a função 'generalizada.dist' criada acima
+
+```{r}
+mahalanobis <- generalizada.dist(dados,vc=a)^2
+mahalanobis
+```
+
+## Método de agrupamento hierárquico
+
+-   Produzir uma árvore de classificação, chamada dendrograma
+
+-   Os individuos são classificados em grupos e os pontos de junção dos grupos são as distâncias euclidianas entre os grupos
+
+-   Critério do vizinho mais próximo ou ligação simples: A distância entre dois grupos é dada por: d(rs)(tu) = mínimo{drt; dru; dst; dsu}
+
+-   Critério do vizinho mais distante ou ligação completa: A distância entre dois grupos é dada por: d(rs)(tu) = máximo{drt; dru; dst; dsu}
+
+-   Critério da ligação média (UPGMA): A distÂncia entre dois grupos é dada pela média da distância dos pares de individuos
+
+```{r}
+# Aplicação prática usando a matriz 'dados' e a matriz resultante da distância 'euclidiana' 
+
+par(mfrow = c(2,2))
+agr1<-hclust(euclidiana, method = "single")
+agr1$height   # Mostra os pontos de fusão do agrupamento
+agr1 <- as.dendrogram(agr1)
+plot(agr1,xlab="",ylab="Distância Euclidiana Quadrática",main="Método do vizinho mais próximo")
+
+agr2<-hclust(euclidiana, method = "complete")
+agr2$height #pontos de fusão.
+agr2 <- as.dendrogram(agr2)
+plot(agr2, xlab=" ",ylab="Distância Euclidiana Quadrática",main="Método do vizinho mais distante")
+
+agr3<-hclust(euclidiana, method = "average")
+agr3$height #pontos de fusão.
+agr3 <- as.dendrogram(agr3)
+plot(agr3, xlab=" ",ylab="Distância Euclidiana Quadrática",main="UPGMA")
+
+agr4<-hclust(euclidiana, method ="ward.D")
+agr4$height #pontos de fusão.
+agr4 <- as.dendrogram(agr4)
+plot(agr4, xlab=" ",ylab="Distância Euclidiana Quadrática",main="Método de Ward")
+
+```
+
+## Método de agrupamento hierárquico no banco de dados Iris
+
+```{r}
+#Aplicação prática usando o banco de dados 'IRIS'
+
+dados_iris <- iris
+
+eucli_iris <- dist(dados_iris[,-5], method = "euclidean")^2
+
+agrupamento = hclust(eucli_iris, method = "complete")
+
+plot(agrupamento, xlab = "", ylab = "Distancia euclidiana quadratica", cex = 0.3)
+```
+
+```{r}
+# Correlação cofenética do resultado com os dados originais
+
+cofenetica = cophenetic(agrupamento)
+cor(cofenetica, eucli_iris)
+
+```
+
+```{r}
+# adiciona retangulos ao redor dos grupos
+plot(agrupamento, xlab = "", ylab = "Distancia euclidiana quadratica", cex = 0.3)
+rect.hclust(agrupamento, k = 3)  
+
+```
+
+```{r}
+# Mostrando os grupos em que os dados estão contidos
+grupos <- cutree(agrupamento, k = 3)
+grupos
+```
+
+## Método de agrupamento não hierárquico
+
+## Método K-médias. Minimizar a distância de elementos dentro de grupos.
+
+-   Define-se a quantidade de grupos e o critério para as sementes.
+
+```{r}
+# Aplicação prática usando a matriz 'dados':
+
+agr<-kmeans(dados, centers= 2)
+agr
+agr$cluster
+
+```
+
+```{r}
+# Aplicação prática usando uma matriz aleatória 'x'
+
+x <- rbind(matrix(rnorm(100, mean=0, sd = 0.3), ncol = 2),matrix(rnorm(100, mean = 1, sd = 0.3), ncol= 2))
+colnames(x) <- c("x", "y")
+cluster <- kmeans(x, 2)
+plot(x,col=cluster$cluster)
+points(cluster$centers,col=1:2,pch=8,cex=2) #pch=formato; cex=tamanho
+
+```
+
+```{r}
+# Aplicação pratica usando os dados 'IRIS'
+
+kmedia = kmeans(dados_iris[,-5], 3, nstart = 20)
+kmedia
+kmedia$cluster
+
+```
