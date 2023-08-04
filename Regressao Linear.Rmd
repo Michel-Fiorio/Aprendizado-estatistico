@@ -1,0 +1,49 @@
+---
+title: "Regressão linear"
+author: "Michel Fiorio"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Regressão Linear Simples e Multipla
+
+```{r}
+# Base de dados para exemplo
+
+dados1 <- read.table("dados_exemplo_regressao.txt", header = T)
+dados1
+summary(dados1)
+```
+
+```{r}
+# Gerando um correlograma entre os pares de variáveis. Grafico de dispersão.
+
+pairs(dados1, col = 2, pch = 19)   # col = cor dos pontos / pch = caracter dos pontos
+
+```
+
+## Regressão linear múltipla
+
+```{r}
+# Modelo de regressão linear multipla
+
+mod_mult = lm(consumo ~ temperatura + dias + pureza + producao, data = dados1)
+summary(mod_mult)
+```
+
+## Modelo de regressão linear simples
+
+```{r}
+# Modelo de regressão linear simples - utilizando somente a variável 'temperatura'
+
+mod_simples = lm(consumo ~ temperatura, data = dados1)
+summary(mod_simples)
+
+```
+
+```{r}
+# Aplicando o modelo. Predizer o consumo medio para uma temperatura de 51
+
+novo = data.frame(temperatura = 51)
+predict(mod_simples, novo)
+```
