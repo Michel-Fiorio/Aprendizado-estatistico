@@ -1,0 +1,165 @@
+---
+title: "Comp_principais"
+author: "Michel Fiorio"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Componentes principais em dados aleatórios
+
+Cálculo executado passo a passo para fins de aprendizado
+
+```{r}
+# Dados
+dados <- matrix(c(102,104,101, 93, 100, 96, 87, 62, 68, 77),5,2)
+dados
+```
+
+```{r}
+# Matrix de covariância
+S<-var(dados)
+S
+```
+
+```{r}
+# Obtenção dos autovalores e autovetores
+autos <- eigen(S)
+autos
+```
+
+```{r}
+# Escores
+dad <- as.matrix(dados)
+dad
+escores1 <- dad %*%autos$vectors
+escores1
+```
+
+```{r}
+# Percentagem da explicação pelos componentes principais
+percent_expli <- autos$values/sum(diag(S))
+percent_expli
+```
+
+```{r}
+# Grafico
+id <- c(1, 2, 3, 4, 5)
+cp_plot <- cbind(id, escores1)
+plot(cp_plot[,2], cp_plot[,3], type="n", xlab="Componente principal 1", ylab="Componente principal 2")
+text(y=cp_plot[,3], x=cp_plot[,2])
+```
+
+## Componentes principais no banco de dados Iris com função 'prcomp'
+
+```{r}
+#Obter informacoes sobre o conjunto de dados iris
+
+data(iris)
+?iris
+
+#Apresentar as seis primeiras linhas do conjunto de dados
+head(iris)
+```
+
+```{r}
+#Verificar dimensao do conjunto de dados
+dim(iris)
+```
+
+```{r}
+#Componentes principais
+
+pca <- prcomp(iris[,-5], center=TRUE, scale=TRUE)
+pca
+```
+
+```{r}
+### Comparar efeito da escala de variáveis
+
+pca2 <- prcomp(iris[,-5], center=TRUE, scale=FALSE)
+pca2
+```
+
+```{r}
+# Desenhar gráficos lado a lado
+par(mfrow=c(1,2),cex=0.7)
+biplot(pca)
+abline(a=0,b=0)
+abline(h=0,v=0)
+biplot(pca2)
+abline(a=0,b=0)
+abline(h=0,v=0)
+```
+
+## Componentes principais utilizando pacote 'FactoMineR' e função PCA
+
+```{r}
+# Instalando e carregando pacote
+#install.packages("FactoMineR")
+library(FactoMineR)
+```
+
+```{r}
+# Usando a função PCA da biblioteca FactoMineR. Essa função quando executada já retorna dois gráficos como resultado da análise
+
+iris.pca <- PCA(iris[,-5])
+```
+
+```{r}
+#install.packages("devtools")  # coleção de ferramentas de desenvolvimento de pacotes
+library("devtools")
+#install_github("kassambara/factoextra") # pacote com função para extrair e visualizar análise de dados multivariados, incluindo PCA
+library("factoextra")
+```
+
+```{r}
+# Usando a função fviz_pca como uma outra opção de visualização mais completa para analise de componentes principais
+
+fviz_pca_ind(iris.pca,
+             geom.ind = "point",
+             col.ind = iris$Species,
+             palette = c("yellow","black","red"),
+             addEllipses = TRUE,
+             legend.title="Grupos")
+
+
+```
+
+## Componentes principais nos dados Iris utilizando função 'princomp'
+
+```{r}
+# Componentes principais
+
+pca_Cov <- princomp(iris[,-5], cor = FALSE, scores = TRUE)
+summary(pca_Cov)
+```
+
+```{r}
+#Pesos
+pca_Cov$loadings
+```
+
+```{r}
+#score
+head(pca_Cov$scores)
+```
+
+```{r}
+# Grafico
+
+par(mfrow=c(1,2))
+biplot(pca_Cov)
+```
+
+```{r}
+# PCA usando matriz de correlação
+
+pca_Cor <- princomp(iris[,-5], cor = TRUE, scores = TRUE)
+summary(pca_Cor)
+```
+
+```{r}
+# Grafico
+
+biplot(pca_Cor)
+```
