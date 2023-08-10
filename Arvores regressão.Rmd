@@ -1,0 +1,129 @@
+---
+title: "Arvores regressão"
+author: "Michel Fiorio"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Árvore de regressão no banco de dados Boston
+
+```{r}
+# Instalar e carregar pacote
+
+#install.packages("tree")
+library(tree)
+
+#Carregar pacote onde está o banco de dados Boston
+library(MASS) 
+
+```
+
+```{r}
+#Utilizando dados do R (Boston - Valores de casas no suburbio de Boston)
+data(Boston)
+dados <- Boston
+head(dados)
+```
+
+```{r}
+#Informacoes sobre o arquivo de dados podem ser acessadas
+?Boston
+```
+
+```{r}
+#Particionar o conjunto de dados (Treinamento e validacao)
+set.seed(1)
+train = sample (1:nrow(Boston), nrow(Boston)/2)
+```
+
+```{r}
+#Ajuste de uma arvore
+mod1 <- tree(medv ~ ., data = dados, subset = train)
+```
+
+```{r}
+#Resumo (Apenas uma variavel foi utilizada na construcao da arvore)
+summary(mod1)
+```
+```{r}
+#Apresentacao da arvore ajustada
+plot(mod1)
+text(mod1)
+```
+```{r}
+#Verificar se e interessante realizar a poda. Determinar o deviance (similar à soma do quadrado dos residuos) )
+cv.boston = cv.tree(mod1)
+plot(cv.boston$size ,cv.boston$dev ,type="b")
+```
+
+```{r}
+#Se desejar podar
+mod_poda=prune.tree(mod1,best=6)
+plot(mod_poda)
+text(mod_poda, pretty =0)
+```
+```{r}
+#Predicao (Considerando o modelo sem poda) e análise através da raiz do erro quadrático médio (REQM)
+yhat=predict (mod1 ,newdata=Boston[- train ,])
+boston.test=Boston[-train ,"medv"]
+REQM <- sqrt(mean((yhat -boston.test)^2))
+REQM
+```
+
+## Utilizando a ferramenta Bagging
+
+```{r}
+#Instalar pacote
+#install.packages("randomForest")
+library(randomForest)
+```
+
+### Ajuste do bagging
+ mtry: é a quantidade das variaveis independentes que desejamos incluir na criação das arvores. 
+ PAra o bagging deve-se manter o mesmo número das variáveis originais.
+ PAra o random forest é utilizado p/3 (número de variáveis dividido por 3)
+ O objetivo do bagging é fazer uma mistura das variáveis na criação de outras arvores para diminuir a variabilidade das arvores
+ 
+```{r}
+# Ajustando o bagging
+mod_bag = randomForest( medv ~ .,data=Boston , subset=train ,
+                        mtry=13,importance =TRUE, ntree = 100)
+mod_bag
+```
+```{r}
+#Avaliacao do modelo com bagging (Predicao)
+
+yhat.bag = predict (mod_bag , newdata=Boston[-train ,])
+REQM_bag <- sqrt(mean((yhat.bag - boston.test)^2))
+REQM_bag
+```
+
+## Utilizando a ferramenta RandomForest
+ 
+## Ajuste do Random Forest
+ No bagging como são utilizados todas as variáveis preditoras em cada partição os resultados terão uma certa dependência.
+ O Random Forest segue a ideia do bagging mas altera o número de variáveis preditoras (mtry) para 1/3 do total.
+ Com isso ocorre uma redução maior da variabilidade nas arvores de decisão 
+
+```{r}
+# Ajustando o Random Forest
+mod_rf = randomForest(medv ~ .,data=Boston , subset=train ,
+                      mtry=4, importance =TRUE)
+
+#Avaliacao do modelo com Random Forest (Predicao)
+yhat.rf = predict(mod_rf,newdata=Boston[- train ,])
+REQM_rf <- sqrt(mean((yhat.rf-boston.test)^2))
+REQM_rf
+```
+```{r}
+#Importancia (Baseado nas amostras out-of-bag)
+## PAra verificar o decrescimo na soma dos quadrados dos desvios gerada quando se retira cada variável 
+i_mod_rf <-importance(mod_rf)
+i_mod_rf
+```
+```{r}
+# Gráfico das importância medidas pelo Random Forest
+
+varImpPlot (mod_rf)
+```
+
